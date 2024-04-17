@@ -69,24 +69,31 @@ class Value {
         return 0;
     }
     void parseFrom(const char* data, size_t len) {
-        int opt = *(int64_t*)data;
+        int64_t opt;
+        std::memcpy(&opt, data, sizeof(opt));
+        int32_t x32;
+        int64_t x64;
+        int32_t n;
         switch ((ValueType)opt) {
             case ValueType::INT32:
-                value_ = *(int32_t*)(data + 8);
+                std::memcpy(&x32, data + 8, sizeof(x32));
+                value_ = x32;
                 break;
             case ValueType::INT64:
-                value_ = *(int64_t*)(data + 8);
+                std::memcpy(&x64, data + 8, sizeof(x64));
+                value_ = x64;
                 break;
             case ValueType::STRING:
-                value_ = std::string(data + 8, std::strlen(data + 8));
+                value_ = std::string(data + 8, len - 8);
                 break;
             case ValueType::STRING_LIST:
-                int n = *(int32_t*)(data + 8);
+                std::memcpy(&n, data + 8, sizeof(n));
                 std::vector<std::string> v;
                 v.reserve(n);
                 int lst = 12;
                 for(int i = 0; i < n; i++) {
                     int len = strlen(data + lst);
+                    std::cout << "i: " << i << " len: " << len << std::endl;
                     v.push_back(std::string(data + lst, len));
                     lst += len + 1;
                 }
@@ -94,17 +101,20 @@ class Value {
                 break;
         }
     }
-    bool parseTo(char* data) {
-        int len = std::strlen(data);
-        *(int64_t*)data = (int64_t)value_.index();
+    bool parseTo(char* data, int len) {
+        // *((int64_t*)data) = (int64_t)value_.index();
+        int64_t opt = value_.index();
+        std::memcpy(data, &opt, sizeof(opt));
         int need, lst;
         auto type = (ValueType)value_.index();
         if(type == ValueType::INT32) {
             if (len < 12) return false;
-            *(int32_t*)(data + 8) = boost::variant2::get<int32_t>(value_);
+            int32_t& x32 = boost::variant2::get<int32_t>(value_);
+            std::memcpy(data + 8, &x32, sizeof(x32));
         } else if(type == ValueType::INT64) {
             if (len < 16) return false;
-            *(int64_t*)(data + 8) = boost::variant2::get<int64_t>(value_);
+            int64_t& x64 = boost::variant2::get<int64_t>(value_);
+            std::memcpy(data + 8, &x64, sizeof(x64));
         } else if(type == ValueType::STRING) {
             auto& value = boost::variant2::get<std::string>(value_);
             if (len < 8 + value.size()) return false;
@@ -118,7 +128,9 @@ class Value {
                 need += vec[i].size() + 1;
             }
             if (len < need) return false;
-            *(int32_t*)(data + 8) = vec.size();
+            int32_t x = vec.size();
+            std::memcpy(data + 8, &x, sizeof(x));
+            // *((int32_t*)(data + 8)) = int32_t(vec.size());
             int lst = 12;
             for(int i = 0; i < vec.size(); i++) {
                 auto& value = vec[i];

@@ -99,8 +99,11 @@ class Service {
                 std::cerr << "read error" << std::endl;
                 return;
             } else if(num > 0) {
-                std::cout << "receive client data: " << buf << std::endl;
+                std::cout << "receive client data: " << buf << " size: " << num << std::endl;
                 Value value;
+                for(int i = 0; i < num; i++) {
+                    std::cout << int(buf[i]) << " ";
+                } std::cout << std::endl;
                 value.parseFrom(buf, num);
                 value.output();
                 std::string msg = "receive success";
@@ -144,12 +147,19 @@ class Client {
     ~Client() {
         close(socket_fd);
     }
-    int send(const Value& value) {
+    int send(Value& value) {
         if(!ok) {
             return -1;
         }
-        value.parseTo(buf);
-        int send_size = ::send(socket_fd, buf, value.size(), 0);
+        char send_buf[value.size() + 1];
+        value.parseTo(send_buf, sizeof(send_buf));
+        std::cout << value.size() << std::endl;
+        for(int i = 0; i < value.size(); i++) {
+            std::cout << int(send_buf[i]) << " ";
+        }std::cout << std::endl;
+        value.output();
+
+        int send_size = ::send(socket_fd, send_buf, value.size(), 0);
         if(send_size == -1) {
             perror("send");
             return -1;
