@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cstdint>
 #include <cstring>
 #include <boost/variant2/variant.hpp>
@@ -30,6 +31,42 @@ class Value {
     template<typename T>
     T& get() {
         return boost::variant2::get<T>(value_);
+    }
+    void output() {
+        auto type = (ValueType)value_.index();
+        if(type == ValueType::INT32) {
+            std::cout << boost::variant2::get<int32_t>(value_) << std::endl;
+        } else if(type == ValueType::INT64) {
+            std::cout << boost::variant2::get<int64_t>(value_) << std::endl;
+        } else if(type == ValueType::STRING) {
+            auto& value = boost::variant2::get<std::string>(value_);
+            std::cout << value << std::endl;
+        } else if(type == ValueType::STRING_LIST) {
+            auto& vec = boost::variant2::get<std::vector<std::string>>(value_);
+            for(int i = 0; i < vec.size(); i++) {
+                auto& value = vec[i];
+                std::cout << value << std::endl;
+            }
+        }
+    }
+    size_t size() {
+        auto type = (ValueType)value_.index();
+        if(type == ValueType::INT32) {
+            return 12;
+        } else if(type == ValueType::INT64) {
+            return 16;
+        } else if(type == ValueType::STRING) {
+            auto& value = boost::variant2::get<std::string>(value_);
+            return 8 + value.size();
+        } else if(type == ValueType::STRING_LIST) {
+            auto& vec = boost::variant2::get<std::vector<std::string>>(value_);
+            int need = 12;
+            for(int i = 0; i < vec.size(); i++) {
+                need += vec[i].size() + 1;
+            }
+            return need;
+        }
+        return 0;
     }
     void parseFrom(const char* data, size_t len) {
         int opt = *(int64_t*)data;

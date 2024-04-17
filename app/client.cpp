@@ -16,7 +16,42 @@ int main(int argv, char* args[]) {
         std::string data;
         std::cin >> data;
         if(data != "EOF") {
-            int res = client->send(data);
+            std::string opt;
+            std::cin >> opt;
+            int res;
+            if(opt == "int32") {
+                int32_t x;
+                std::cin >> x;
+                tcp::Value value;
+                value.set<int32_t>(x);
+                res = client->send(value);
+            } else if(opt == "int64") {
+                int64_t x;
+                std::cin >> x;
+                tcp::Value value;
+                value.set<int64_t>(x);
+                res = client->send(value);
+            } else if(opt == "string") {
+                std::string x;
+                std::cin >> x;
+                tcp::Value value;
+                value.set<std::string>(x);
+                res = client->send(value);
+            } else if(opt == "string_list") {
+                int n;
+                std::cin >> n;
+                std::vector<std::string> v;
+                v.reserve(n);
+                for(int i = 0; i < n; i++) {
+                    std::string x;
+                    std::cin >> x;
+                    v.emplace_back(std::move(x));
+                }
+                tcp::Value value;
+                value.set<std::vector<std::string>>(std::move(v));
+                res = client->send(value);
+            }
+            // int res = client->send(data);
             if(res == -1) {
                 std::cout << "send failed" << std::endl;
             } else if(res == 0) {

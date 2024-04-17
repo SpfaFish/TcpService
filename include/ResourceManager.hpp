@@ -13,6 +13,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "./Value.hpp"
+
 namespace tcp {
 
 
@@ -98,6 +100,9 @@ class Service {
                 return;
             } else if(num > 0) {
                 std::cout << "receive client data: " << buf << std::endl;
+                Value value;
+                value.parseFrom(buf, num);
+                value.output();
                 std::string msg = "receive success";
                 send(client_fd, msg.c_str(), msg.size(), 0);
             } else if(num == 0) {
@@ -138,6 +143,28 @@ class Client {
     }
     ~Client() {
         close(socket_fd);
+    }
+    int send(const Value& value) {
+        if(!ok) {
+            return -1;
+        }
+        value.parseTo(buf);
+        int send_size = ::send(socket_fd, buf, value.size(), 0);
+        if(send_size == -1) {
+            perror("send");
+            return -1;
+        }
+        int num = recv(socket_fd, buf, sizeof(buf), 0);
+        if(num == -1) {
+            perror("recv");
+            return -1;
+        } else if(num > 0) {
+            std::cout << "receive message from server: " << buf << " size: " << num << std::endl;
+        } else if(num == 0) {
+            std::cout << "server closed" << std::endl;
+            return 1;
+        }
+        return 0;
     }
     int send(const std::string& data) {
         if(!ok) {
